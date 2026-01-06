@@ -25,10 +25,51 @@ export const GoogleMap = ({ onHospitalsFound }: GoogleMapProps) => {
   const [map, setMap] = useState<google.maps.Map | null>(null);
   const [userLocation, setUserLocation] = useState<string>('');
 
+  const [isMockMode, setIsMockMode] = useState(false);
+
   useEffect(() => {
     const initMap = async () => {
+      const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || ''; // Use VITE_ prefix for Vite
+
+      // MOCK MODE: If no API key or placeholder, use mock data
+      if (!apiKey || apiKey === 'YOUR_GOOGLE_MAPS_API_KEY') {
+        setIsMockMode(true);
+        console.log("Using Mock Maps Data");
+        toast.info("Using Mock Data (No API Key provided)");
+
+        // Simulate loading delay
+        setTimeout(() => {
+          const mockHospitals: Hospital[] = [
+            {
+              place_id: '1',
+              name: 'City General Hospital',
+              vicinity: '123 Healthcare Ave, Metro City',
+              rating: 4.5,
+              geometry: { location: { lat: 40.7128, lng: -74.0060 } }
+            },
+            {
+              place_id: '2',
+              name: 'St. Mary\'s Medical Center',
+              vicinity: '456 Wellness Blvd, Metro City',
+              rating: 4.2,
+              geometry: { location: { lat: 40.7138, lng: -74.0070 } }
+            },
+            {
+              place_id: '3',
+              name: 'Community Clinic',
+              vicinity: '789 Care Lane, Metro City',
+              rating: 4.8,
+              geometry: { location: { lat: 40.7118, lng: -74.0050 } }
+            }
+          ];
+          onHospitalsFound(mockHospitals);
+          setUserLocation("Metro City, Mock Location");
+        }, 1000);
+        return;
+      }
+
       const loader = new Loader({
-        apiKey: process.env.REACT_APP_GOOGLE_MAPS_API_KEY || 'YOUR_GOOGLE_MAPS_API_KEY',
+        apiKey: apiKey,
         version: 'weekly',
         libraries: ['places']
       });
@@ -43,7 +84,7 @@ export const GoogleMap = ({ onHospitalsFound }: GoogleMapProps) => {
           navigator.geolocation.getCurrentPosition(
             async (position) => {
               const { latitude, longitude } = position.coords;
-              
+
               const mapInstance = new google.maps.Map(mapRef.current!, {
                 center: { lat: latitude, lng: longitude },
                 zoom: 15,
@@ -167,7 +208,14 @@ export const GoogleMap = ({ onHospitalsFound }: GoogleMapProps) => {
           📍 Current location: {userLocation}
         </div>
       )}
-      <div ref={mapRef} className="w-full h-64 rounded-lg border" />
+      {isMockMode ? (
+        <div className="w-full h-64 rounded-lg border bg-muted flex items-center justify-center flex-col gap-2">
+          <p className="text-muted-foreground font-medium">Map Unavailable (Mock Mode)</p>
+          <p className="text-xs text-muted-foreground">Showing simulated nearby hospitals</p>
+        </div>
+      ) : (
+        <div ref={mapRef} className="w-full h-64 rounded-lg border" />
+      )}
     </div>
   );
 };

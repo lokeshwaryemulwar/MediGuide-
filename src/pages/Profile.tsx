@@ -1,16 +1,15 @@
-
 import { useState } from 'react';
 import { Header } from '@/components/Header';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { User, Calendar, Sun, Moon } from 'lucide-react';
+import { User, Calendar, Sun, Moon, Phone, Users, LogOut } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useTheme } from 'next-themes';
 import { AppointmentHistory } from '@/components/AppointmentHistory';
 
 export const Profile = () => {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const { theme, setTheme } = useTheme();
   const [showAppointments, setShowAppointments] = useState(false);
 
@@ -23,8 +22,8 @@ export const Profile = () => {
       <div className="min-h-screen bg-background">
         <Header title="My Appointments" showBack />
         <div className="p-4">
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             onClick={() => setShowAppointments(false)}
             className="mb-4"
           >
@@ -55,17 +54,40 @@ export const Profile = () => {
                   <Badge className="bg-green-500/10 text-green-400 border-green-500/20">
                     Verified
                   </Badge>
-                  <Badge variant="secondary">Premium</Badge>
                 </div>
+              </div>
+            </div>
+
+            <div className="mt-6 grid grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <div className="flex items-center text-muted-foreground text-sm">
+                  <Phone className="h-4 w-4 mr-2" />
+                  Mobile
+                </div>
+                <p className="font-medium">{user?.mobile || 'Not set'}</p>
+              </div>
+              <div className="space-y-1">
+                <div className="flex items-center text-muted-foreground text-sm">
+                  <Calendar className="h-4 w-4 mr-2" />
+                  Age
+                </div>
+                <p className="font-medium">{user?.age || 'Not set'}</p>
+              </div>
+              <div className="space-y-1">
+                <div className="flex items-center text-muted-foreground text-sm">
+                  <Users className="h-4 w-4 mr-2" />
+                  Gender
+                </div>
+                <p className="font-medium capitalize">{user?.gender || 'Not set'}</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
         {/* Theme Toggle Button */}
-        <Button 
-          variant="outline" 
-          className="w-full animate-fade-up" 
+        <Button
+          variant="outline"
+          className="w-full animate-fade-up"
           style={{ animationDelay: '100ms' }}
           onClick={toggleTheme}
         >
@@ -83,14 +105,25 @@ export const Profile = () => {
         </Button>
 
         {/* Appointments Button */}
-        <Button 
-          variant="outline" 
-          className="w-full animate-fade-up" 
+        <Button
+          variant="outline"
+          className="w-full animate-fade-up"
           style={{ animationDelay: '200ms' }}
           onClick={() => setShowAppointments(true)}
         >
           <Calendar className="h-4 w-4 mr-2" />
           My Appointments
+        </Button>
+
+        {/* Logout Button */}
+        <Button
+          variant="destructive"
+          className="w-full animate-fade-up"
+          style={{ animationDelay: '300ms' }}
+          onClick={logout}
+        >
+          <LogOut className="h-4 w-4 mr-2" />
+          Logout
         </Button>
       </div>
     </div>

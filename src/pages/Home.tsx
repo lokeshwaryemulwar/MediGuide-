@@ -49,20 +49,8 @@ export const Home = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <Header 
-        title="Healthcare Assistant" 
-        rightAction={
-          <div className="relative">
-            <Button variant="ghost" size="sm" className="p-2">
-              <Bell className="h-5 w-5" />
-            </Button>
-            {notifications > 0 && (
-              <Badge className="absolute -top-1 -right-1 h-5 w-5 rounded-full p-0 text-xs bg-primary">
-                {notifications}
-              </Badge>
-            )}
-          </div>
-        }
+      <Header
+        title="Healthcare Assistant"
       />
 
       <div className="p-4 space-y-6">
@@ -85,8 +73,8 @@ export const Home = () => {
           <div className="grid grid-cols-2 gap-4">
             {quickActions.map((action, index) => (
               <Link key={action.path} to={action.path}>
-                <Card className="glass-card hover:bg-card/70 transition-all duration-200 hover:scale-105 animate-fade-up" 
-                      style={{ animationDelay: `${index * 100}ms` }}>
+                <Card className="glass-card hover:bg-card/70 transition-all duration-200 hover:scale-105 animate-fade-up"
+                  style={{ animationDelay: `${index * 100}ms` }}>
                   <CardContent className="p-4">
                     <div className={`inline-flex p-3 rounded-lg ${action.color} mb-3`}>
                       <action.icon className="h-6 w-6" />

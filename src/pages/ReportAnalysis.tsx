@@ -1,25 +1,97 @@
-
+import { useEffect, useState } from 'react';
 import { Header } from '@/components/Header';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Heart, TrendingUp, MessageCircle, Share } from 'lucide-react';
+import { Heart, CheckCircle, User, FileText, Pill, Clock, Calendar, AlertCircle, Activity, Loader2 } from 'lucide-react';
+import { ChatInterface } from '@/components/ChatInterface';
+import { toast } from 'sonner';
 
 export const ReportAnalysis = () => {
-  const findings = [
-    { label: 'Blood Pressure', value: 'Normal', status: 'good' },
-    { label: 'Cholesterol Levels', value: 'Slightly Elevated', status: 'warning' },
-    { label: 'Glucose Levels', value: 'Within Range', status: 'good' },
-  ];
+  const [addedToSchedule, setAddedToSchedule] = useState(false);
+  const [reportData, setReportData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
-  const chartData = [
-    { month: 'Jan', value: 180 },
-    { month: 'Feb', value: 190 },
-    { month: 'Mar', value: 170 },
-    { month: 'Apr', value: 200 },
-    { month: 'May', value: 220 },
-    { month: 'Jun', value: 210 },
-  ];
+  useEffect(() => {
+    // Load report data from localStorage
+    const currentReport = localStorage.getItem('currentReport');
+    if (currentReport) {
+      try {
+        const parsedReport = JSON.parse(currentReport);
+        setReportData(parsedReport);
+
+        // If analysis is a string (legacy/fallback), try to parse it if it looks like JSON
+        // otherwise wrap it in a structure
+        let analysis = parsedReport.analysis;
+        if (typeof analysis === 'string') {
+          try {
+            analysis = JSON.parse(analysis);
+          } catch (e) {
+            // If not JSON, treat as summary
+            analysis = { summary: analysis, findings: [], medications: [] };
+          }
+        }
+        setReportData({ ...parsedReport, analysis });
+
+        // Auto-add medicines if found
+        if (analysis.medications && analysis.medications.length > 0) {
+          // Helper function to convert time labels to specific times
+          const convertTimeToSpecific = (timeLabel: string): string => {
+            const lowerTime = timeLabel.toLowerCase();
+            if (lowerTime.includes('morning') || lowerTime.includes('breakfast')) {
+              return '08:00';
+            } else if (lowerTime.includes('evening') || lowerTime.includes('afternoon')) {
+              return '14:00';
+            } else if (lowerTime.includes('night') || lowerTime.includes('dinner') || lowerTime.includes('bedtime')) {
+              return '21:00';
+            }
+            // If already in HH:MM format or specific time, return as is
+            return timeLabel;
+          };
+
+          const medicines = analysis.medications.map((med: any, index: number) => ({
+            id: `auto_${Date.now()}_${index}`,
+            name: med.name,
+            dosage: med.dosage,
+            time: convertTimeToSpecific(med.time),
+            taken: false
+          }));
+
+          const existing = localStorage.getItem('medications');
+          let currentMeds = existing ? JSON.parse(existing) : [];
+
+          // Simple check to avoid duplicates (could be improved)
+          const isDuplicate = currentMeds.some((m: any) => m.name === medicines[0].name);
+
+          if (!isDuplicate) {
+            const updatedMeds = [...currentMeds, ...medicines];
+            localStorage.setItem('medications', JSON.stringify(updatedMeds));
+            setAddedToSchedule(true);
+            setTimeout(() => {
+              toast.success("Medicines automatically added to your schedule!");
+            }, 1000);
+          } else {
+            setAddedToSchedule(true);
+          }
+        }
+      } catch (error) {
+        console.error("Error parsing report data:", error);
+        toast.error("Failed to load report data");
+      }
+    }
+    setLoading(false);
+  }, []);
+
+  if (loading) {
+    return <div className="min-h-screen flex items-center justify-center">Loading analysis...</div>;
+  }
+
+  if (!reportData) {
+    return <div className="min-h-screen flex items-center justify-center">No report found. Please upload a report first.</div>;
+  }
+
+  const { analysis } = reportData;
+  const findings = analysis.findings || [];
+  const medications = analysis.medications || [];
 
   return (
     <div className="min-h-screen bg-background">
@@ -28,105 +100,109 @@ export const ReportAnalysis = () => {
       <div className="p-4 space-y-6">
         {/* Understanding Section */}
         <Card className="glass-card animate-fade-up">
-          <CardHeader>
-            <CardTitle className="text-foreground">Understanding Your Report</CardTitle>
-            <CardDescription>
-              This section breaks down your medical report into easy-to-understand terms, highlighting 
-              key findings and potential implications for your health. We'll use visuals to help you 
-              grasp the information more effectively.
+          <CardHeader className="pb-2">
+            <CardTitle className="text-foreground text-xl">Report Summary</CardTitle>
+            <CardDescription className="text-base leading-relaxed mt-2 text-foreground/80">
+              {analysis.summary || "No summary available."}
             </CardDescription>
           </CardHeader>
+          {analysis.patientDetails && (analysis.patientDetails.name || analysis.patientDetails.age) && (
+            <CardContent className="pt-0 pb-4">
+              <div className="flex flex-wrap gap-2 mt-3 pt-3 border-t border-border/50">
+                {analysis.patientDetails.name && (
+                  <div className="flex items-center gap-1.5 bg-primary/10 text-primary px-3 py-1 rounded-full text-sm font-medium">
+                    <User size={14} />
+                    {analysis.patientDetails.name}
+                  </div>
+                )}
+                {analysis.patientDetails.age && (
+                  <div className="flex items-center gap-1.5 bg-secondary text-secondary-foreground px-3 py-1 rounded-full text-sm font-medium">
+                    <span>Age: {analysis.patientDetails.age}</span>
+                  </div>
+                )}
+                {analysis.patientDetails.gender && (
+                  <div className="flex items-center gap-1.5 bg-secondary text-secondary-foreground px-3 py-1 rounded-full text-sm font-medium">
+                    <span>{analysis.patientDetails.gender}</span>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          )}
         </Card>
 
         {/* Key Findings */}
-        <div className="animate-fade-up" style={{ animationDelay: '100ms' }}>
-          <h3 className="text-lg font-semibold mb-4 text-foreground">Key Findings</h3>
-          <div className="space-y-3">
-            {findings.map((finding, index) => (
-              <Card key={index} className="glass-card">
-                <CardContent className="p-4">
-                  <div className="flex items-center space-x-4">
-                    <div className={`p-2 rounded-lg ${
-                      finding.status === 'good' ? 'bg-green-500/10 text-green-400' : 'bg-yellow-500/10 text-yellow-400'
-                    }`}>
-                      <Heart className="h-5 w-5" />
+        {findings.length > 0 && (
+          <div className="animate-fade-up" style={{ animationDelay: '100ms' }}>
+            <h3 className="text-lg font-semibold mb-3 text-foreground flex items-center gap-2">
+              <FileText className="h-5 w-5 text-primary" />
+              Key Findings
+            </h3>
+            <div className="grid gap-3 md:grid-cols-2">
+              {findings.map((finding: any, index: number) => (
+                <Card key={index} className="glass-card hover:shadow-md transition-shadow">
+                  <CardContent className="p-4 flex items-start gap-3">
+                    <div className={`mt-1 p-1.5 rounded-full ${finding.status === 'good' ? 'bg-green-500/10 text-green-500' : finding.status === 'warning' ? 'bg-red-500/10 text-red-500' : 'bg-blue-500/10 text-blue-500'}`}>
+                      {finding.status === 'good' ? <CheckCircle size={16} /> : finding.status === 'warning' ? <AlertCircle size={16} /> : <Activity size={16} />}
                     </div>
-                    <div className="flex-1">
-                      <h4 className="font-semibold text-foreground">{finding.label}</h4>
-                      <p className="text-muted-foreground">{finding.value}</p>
+                    <div>
+                      <h4 className="font-medium text-foreground">{finding.label}</h4>
+                      <p className="text-sm text-muted-foreground mt-0.5">{finding.value}</p>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
 
-        {/* Visual Analysis */}
-        <Card className="glass-card animate-fade-up" style={{ animationDelay: '200ms' }}>
-          <CardHeader>
-            <CardTitle className="text-foreground">Visual Analysis</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div>
-                <h4 className="font-semibold text-foreground mb-2">Cholesterol Levels Over Time</h4>
-                <div className="text-3xl font-bold text-foreground mb-2">210 mg/dL</div>
-                <div className="flex items-center space-x-2 mb-4">
-                  <span className="text-sm text-muted-foreground">Last 6 Months</span>
-                  <Badge className="bg-green-500/10 text-green-400 border-green-500/20">+5%</Badge>
-                </div>
-              </div>
-
-              {/* Simple Chart Visualization */}
-              <div className="h-40 relative bg-card/30 rounded-lg p-4">
-                <svg className="w-full h-full" viewBox="0 0 300 120">
-                  <defs>
-                    <linearGradient id="chartGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                      <stop offset="0%" stopColor="hsl(210, 100%, 56%)" stopOpacity="0.8"/>
-                      <stop offset="100%" stopColor="hsl(210, 100%, 56%)" stopOpacity="0.1"/>
-                    </linearGradient>
-                  </defs>
-                  
-                  {/* Chart Line */}
-                  <path
-                    d="M 30 80 Q 80 60 130 90 Q 180 40 230 20 Q 260 30 270 25"
-                    stroke="hsl(210, 100%, 56%)"
-                    strokeWidth="3"
-                    fill="none"
-                    className="animate-pulse-soft"
-                  />
-                  
-                  {/* Fill Area */}
-                  <path
-                    d="M 30 80 Q 80 60 130 90 Q 180 40 230 20 Q 260 30 270 25 L 270 100 L 30 100 Z"
-                    fill="url(#chartGradient)"
-                  />
-                </svg>
-                
-                {/* X-axis labels */}
-                <div className="absolute bottom-0 left-0 right-0 flex justify-between px-4 text-xs text-muted-foreground">
-                  {chartData.map((item) => (
-                    <span key={item.month}>{item.month}</span>
+        {/* Prescribed Medications */}
+        {medications.length > 0 && (
+          <div className="animate-fade-up" style={{ animationDelay: '200ms' }}>
+            <h3 className="text-lg font-semibold mb-3 text-foreground flex items-center gap-2">
+              <Pill className="h-5 w-5 text-primary" />
+              Prescribed Medications
+            </h3>
+            <Card className="glass-card">
+              <CardContent className="p-0">
+                <div className="divide-y divide-border/50">
+                  {medications.map((med: any, index: number) => (
+                    <div key={index} className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                      <div>
+                        <div className="font-semibold text-foreground text-lg">{med.name}</div>
+                        <div className="text-sm text-muted-foreground mt-1 flex flex-wrap gap-3">
+                          <span className="flex items-center gap-1"><Clock size={14} /> {med.time}</span>
+                          <span className="flex items-center gap-1"><Calendar size={14} /> {med.duration}</span>
+                        </div>
+                      </div>
+                      <div className="bg-primary/10 text-primary px-3 py-1.5 rounded-lg text-sm font-medium self-start sm:self-center whitespace-nowrap">
+                        {med.dosage}
+                      </div>
+                    </div>
                   ))}
                 </div>
-              </div>
 
-              <p className="text-sm text-muted-foreground">
-                The chart above shows your cholesterol levels over the past six months. While your current 
-                level is slightly elevated, monitoring this trend can help you and your doctor make informed 
-                decisions about your health.
-              </p>
-            </div>
-          </CardContent>
-        </Card>
+                <div className="p-4 bg-muted/30 border-t border-border/50">
+                  {addedToSchedule ? (
+                    <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
+                      <CheckCircle className="h-5 w-5" />
+                      <span className="font-medium">Automatically added to your Medicine Schedule</span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <span>Syncing with schedule...</span>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
 
-        {/* Action Button */}
-        <Button className="w-full medical-gradient text-white font-semibold py-4 animate-fade-up" 
-                style={{ animationDelay: '300ms' }}>
-          <MessageCircle className="h-5 w-5 mr-2" />
-          Discuss with Doctor
-        </Button>
+        {/* AI Chat Assistant */}
+        <div className="animate-fade-up" style={{ animationDelay: '250ms' }}>
+          <ChatInterface context={`Report Summary: ${analysis.summary}\nFindings: ${JSON.stringify(findings)}\nMedications: ${JSON.stringify(medications)}`} />
+        </div>
       </div>
     </div>
   );

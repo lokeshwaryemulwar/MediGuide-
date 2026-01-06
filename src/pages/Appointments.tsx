@@ -9,8 +9,8 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Search, MapPin, Plus, Minus, Navigation, Clock, Phone, User } from 'lucide-react';
 import { toast } from 'sonner';
-import { GoogleMap } from '@/components/GoogleMap';
-import { useNotifications } from '@/hooks/useNotifications';
+import { AppleMap } from '@/components/AppleMap';
+import { useNotifications } from '@/contexts/NotificationContext';
 
 interface Hospital {
   id: string;
@@ -117,9 +117,9 @@ export const Appointments = () => {
 
         {/* Google Map Section */}
         <Card className="glass-card animate-fade-up" style={{ animationDelay: '100ms' }}>
-          <CardContent className="p-4">
-            <GoogleMap onHospitalsFound={handleHospitalsFound} />
-          </CardContent>
+          <div className="p-4 space-y-6">
+            <AppleMap onHospitalsFound={handleHospitalsFound} />
+          </div>
         </Card>
 
         {/* Hospital List */}
@@ -147,8 +147,8 @@ export const Appointments = () => {
                       <p className="text-sm text-muted-foreground mt-1">{hospital.address}</p>
                       <p className="text-sm text-muted-foreground mt-2">{hospital.specialties}</p>
                     </div>
-                    <Button 
-                      size="sm" 
+                    <Button
+                      size="sm"
                       onClick={() => handleBookAppointment(hospital)}
                       className="medical-gradient"
                     >
@@ -172,7 +172,7 @@ export const Appointments = () => {
                 <Label className="text-sm font-medium">Hospital</Label>
                 <p className="text-sm text-muted-foreground">{selectedHospital?.name}</p>
               </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="patientName">Patient Name</Label>
                 <div className="relative">
